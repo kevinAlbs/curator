@@ -7,6 +7,8 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"fmt"
+	"io/ioutil"
 
 	"github.com/evergreen-ci/gimlet"
 	"github.com/evergreen-ci/utility"
@@ -53,6 +55,7 @@ func (c *Client) getURL(p string) string {
 }
 
 func (c *Client) makeRequest(ctx context.Context, url, method string, body io.Reader) (*http.Request, error) {
+	fmt.Printf("Client.makeRequest is using url=%v\n", c.getURL(url))
 	req, err := http.NewRequest(method, c.getURL(url), body)
 	if err != nil {
 		return nil, errors.Wrap(err, "problem with request")
@@ -171,11 +174,17 @@ type JobStatus struct {
 
 func (c *Client) handleError(code int, body io.ReadCloser) gimlet.ErrorResponse {
 	out := gimlet.ErrorResponse{}
-	err := gimlet.GetJSON(body, &out)
+	bodyBytes, err := ioutil.ReadAll(body)
+	bodyStr := string(bodyBytes)
+	fmt.Printf("handleError called with bodyStr: %v\n", bodyStr)
 	if err != nil {
-		out.Message = errors.Wrap(err, "problem parsing error response").Error()
-		out.StatusCode = code
+		out.Message = errors.Wrap(err, "problem reading error response").Error()
 	}
+	// err := gimlet.GetJSON(body, &out)
+	// if err != nil {
+	// 	out.Message = fmt.Errorf(errors.Wrap(err, "problem parsing error response").Error()
+	// 	out.StatusCode = code
+	// }
 	return out
 }
 
